@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Vietnamese - Chinese Vocabulary</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background-color: #f7f7f7;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #009688;
+      color: white;
+    }
+    button {
+      background-color: #009688;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #00796B;
+    }
+    input[type="text"] {
+      padding: 8px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🇻🇳 Vietnamese - Chinese Vocabulary 🇨🇳</h2>
+
+  <div>
+    <input type="text" id="vietnamese" placeholder="Tiếng Việt">
+    <input type="text" id="chinese" placeholder="Tiếng Trung">
+    <button onclick="addWord()">➕ Thêm Từ</button>
+  </div>
+
+  <input type="text" id="searchInput" placeholder="🔍 Tìm từ..." onkeyup="filterTable()" style="padding: 8px; margin: 10px 0; width: 100%; max-width: 300px;">
+
+  <table>
+    <thead>
+      <tr>
+        <th>Tiếng Việt</th>
+        <th>Tiếng Trung</th>
+        <th>🔊</th>
+        <th>✅ Đã học</th>
+        <th>🗑️</th>
+      </tr>
+    </thead>
+    <tbody id="vocabTable">
+    </tbody>
+  </table>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      "https://ushgdjrfxjlgmkpszezu.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaGdkanJmeGpsZ21rcHN6ZXp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5MzU3MDYsImV4cCI6MjA2MjUxMTcwNn0.h7StyccpTKj5IXqstGBoOZXGUo1JZ8TsGBu8jOic7AI"
+    );
+
+    async function fetchData() {
+      const { data, error } = await supabase.from('viet_chinese').select('*').order('id', { ascending: true });
+      if (error) {
+        console.error(error);
+        return;
+      }
+      const table = document.getElementById('vocabTable');
+      table.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.vietnamese}</td>
+          <td>${row.chinese}</td>
+          <td><button onclick="speak('${row.vietnamese}')">🔊</button></td>
+          <td><input type='checkbox' ${row.is_learned ? 'checked' : ''} onchange="toggleLearned(${row.id}, this.checked)"></td>
+          <td><button onclick="deleteWord(${row.id})">🗑️</button></td>
+        `;
+        table.appendChild(tr);
+      });
+    }
+
+    async function addWord() {
+      const vietnamese = document.getElementById('vietnamese').value.trim();
+      const chinese = document.getElementById('chinese').value.trim();
+      if (!vietnamese || !chinese) return alert("Hãy nhập đầy đủ cả hai ô!");
+
+      const { error } = await supabase.from('viet_chinese').insert({ vietnamese: vietnamese, chinese: chinese });
+      if (error) {
+        alert("Không thêm được từ.");
+        console.error(error);
+      } else {
+        fetchData();
+        document.getElementById('vietnamese').value = '';
+        document.getElementById('chinese').value = '';
+      }
+    }
+
+    async function deleteWord(id) {
+      if (!confirm("Bạn có chắc muốn xóa từ này không?")) return;
+      const { error } = await supabase.from('viet_chinese').delete().eq('id', id);
+      if (error) {
+        alert("Xóa thất bại.");
+        console.error(error);
+      } else {
+        fetchData();
+      }
+    }
+
+    async function toggleLearned(id, value) {
+      const { error } = await supabase.from('viet_chinese').update({ is_learned: value }).eq('id', id);
+      if (error) {
+        console.error("Failed to update learned status:", error);
+        alert("Cập nhật trạng thái học thất bại.");
+      }
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'vi-VN';
+      speechSynthesis.speak(utterance);
+    }
+
+    function filterTable() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("#vocabTable tr");
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+      });
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
